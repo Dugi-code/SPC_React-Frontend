@@ -1,0 +1,9 @@
+Making changes vto frontend
+
+Edit index.html directly:
+
+Styles: in the <style> tag
+Components: in the <script type="text/babel"> tag
+API config: look for API_BASE and API_KEY constants
+The file is self-contained, so you can edit it in any text editor and refresh the browser to see changes.
+Your frontend is saved and ready to use.

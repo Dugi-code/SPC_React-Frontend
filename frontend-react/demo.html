@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salary Progression Calculator</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #f5f5f5;
+            padding: 10px;
+            font-size: 14px;
+        }
+        
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .section {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin: 10px;
+            padding: 12px;
+            background: white;
+        }
+        
+        .section-title {
+            font-weight: bold;
+            font-size: 10pt;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        
+        .fields-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .field-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        label {
+            font-size: 13px;
+            white-space: nowrap;
+        }
+        
+        input[type="text"],
+        select {
+            padding: 2px 4px;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 13px;
+            background: white;
+        }
+        
+        input[type="text"]:focus,
+        select:focus {
+            border: 2px solid #0078D7;
+            background-color: #E5F3FF;
+            outline: none;
+        }
+        
+        input[type="text"]:disabled,
+        select:disabled {
+            background-color: #F5F5F5;
+            color: #999;
+            cursor: not-allowed;
+        }
+        
+        button {
+            padding: 4px 12px;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            background: #F0F0F0;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        
+        button:hover:not(:disabled) {
+            background: #E5E5E5;
+        }
+        
+        button:disabled {
+            background: #F5F5F5;
+            color: #999;
+            cursor: not-allowed;
+        }
+        
+        button.calendar-btn {
+            padding: 2px 6px;
+            min-width: 20px;
+            max-width: 20px;
+        }
+        
+        .history-results-container {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .history-results-container > .section {
+            flex: 1;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+        
+        table th,
+        table td {
+            border: 1px solid #ddd;
+            padding: 4px;
+            text-align: left;
+            font-size: 12px;
+        }
+        
+        table th {
+            background: #f0f0f0;
+            font-weight: bold;
+        }
+        
+        .calc-status-container {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+        
+        .calc-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .final-status {
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            padding: 12px;
+            min-width: 200px;
+        }
+        
+        .final-status-label {
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .final-status-value {
+            font-size: 12pt;
+            font-weight: bold;
+        }
+        
+        .calendar-popup {
+            position: fixed;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            padding: 10px;
+            min-width: 300px;
+        }
+        
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+        
+        .calendar-day {
+            padding: 8px;
+            text-align: center;
+            cursor: pointer;
+            border: 1px solid #ddd;
+        }
+        
+        .calendar-day:hover {
+            background: #E5F3FF;
+        }
+        
+        .calendar-day.selected {
+            background: #0078D7;
+            color: white;
+        }
+        
+        .error-message {
+            color: #c33;
+            background: #fee;
+            border: 1px solid #fcc;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 8px 0;
+        }
+        
+        .success-message {
+            color: #3c3;
+            background: #efe;
+            border: 1px solid #cfc;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 8px 0;
+        }
+        
+        .session-status {
+            padding: 8px;
+            margin: 8px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        
+        .session-active {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .session-inactive {
+            background: #999;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Date parsing utility (matching DateHandler logic)
+        function parseDate(dateStr) {
+            if (!dateStr) return null;
+            try {
+                const parts = dateStr.split('-');
+                if (parts.length !== 3) return null;
+                let day = parseInt(parts[0], 10);
+                let month = parseInt(parts[1], 10);
+                let year = parseInt(parts[2], 10);
+                
+                // Y2K correction
+                if (year < 50) {
+                    year += 2000;
+                } else {
+                    year += 1900;
+                }
+                
+                return new Date(year, month - 1, day);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function formatDate(date) {
+            if (!date) return '';
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = String(date.getFullYear()).slice(-2);
+            return `${day}-${month}-${year}`;
+        }
+
+        // Calendar Component
+        function Calendar({ onDateSelect, onClose, initialDate, position }) {
+            const [currentDate, setCurrentDate] = useState(initialDate || new Date());
+            const [selectedDate, setSelectedDate] = useState(null);
+            const calendarRef = useRef(null);
+
+            useEffect(() => {
+                if (position && calendarRef.current) {
+                    calendarRef.current.style.left = `${position.x}px`;
+                    calendarRef.current.style.top = `${position.y}px`;
+                }
+            }, [position]);
+
+            const daysInMonth = (date) => {
+                return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+            };
+
+            const firstDayOfMonth = (date) => {
+                return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+            };
+
+            const handleDateClick = (day) => {
+                const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+                setSelectedDate(newDate);
+                onDateSelect(formatDate(newDate));
+                onClose();
+            };
+
+            const prevMonth = () => {
+                setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+            };
+
+            const nextMonth = () => {
+                setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+            };
+
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+            const days = [];
+            const firstDay = firstDayOfMonth(currentDate);
+            const daysCount = daysInMonth(currentDate);
+
+            // Empty cells for days before month starts
+            for (let i = 0; i < firstDay; i++) {
+                days.push(null);
+            }
+
+            // Days of the month
+            for (let day = 1; day <= daysCount; day++) {
+                days.push(day);
+            }
+
+            return (
+                <div ref={calendarRef} className="calendar-popup">
+                    <div className="calendar-header">
+                        <button onClick={prevMonth}>‹</button>
+                        <span>{monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}</span>
+                        <button onClick={nextMonth}>›</button>
+                    </div>
+                    <div className="calendar-grid">
+                        {dayNames.map(day => (
+                            <div key={day} style={{ fontWeight: 'bold', textAlign: 'center' }}>{day}</div>
+                        ))}
+                        {days.map((day, idx) => (
+                            <div
+                                key={idx}
+                                className={`calendar-day ${day && selectedDate && day === selectedDate.getDate() ? 'selected' : ''}`}
+                                onClick={() => day && handleDateClick(day)}
+                                style={!day ? { visibility: 'hidden' } : {}}
+                            >
+                                {day}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        // Personal Information Component
+        function PersonalInfo({ data, onChange, disabled }) {
+            const [showCalendar, setShowCalendar] = useState(false);
+            const [calendarPos, setCalendarPos] = useState({ x: 0, y: 0 });
+            const dobInputRef = useRef(null);
+
+            const handleCalendarClick = (e) => {
+                if (disabled) return;
+                const rect = e.target.getBoundingClientRect();
+                setCalendarPos({ x: rect.left, y: rect.bottom + 5 });
+                setShowCalendar(true);
+            };
+
+            const validateName = (text) => {
+                if (!text) return '';
+                return text.replace(/[^a-zA-Z\s-]/g, '');
+            };
+
+            const validateOracle = (text) => {
+                if (!text) return '';
+                return text.replace(/\D/g, '');
+            };
+
+            const validateDate = (text) => {
+                if (!text) return '';
+                return text.replace(/[^\d-]/g, '');
+            };
+
+            return (
+                <div className="section">
+                    <div className="section-title">Personal Information</div>
+                    <div className="fields-row">
+                        <div className="field-group">
+                            <label>Name:</label>
+                            <input
+                                type="text"
+                                value={data.name || ''}
+                                onChange={(e) => onChange({ ...data, name: validateName(e.target.value) })}
+                                placeholder="Enter name"
+                                disabled={disabled}
+                            />
+                        </div>
+                        <div className="field-group">
+                            <label>Oracle Number:</label>
+                            <input
+                                type="text"
+                                value={data.oracle_number || ''}
+                                onChange={(e) => onChange({ ...data, oracle_number: validateOracle(e.target.value) })}
+                                placeholder="Enter oracle number"
+                                style={{ width: '90px' }}
+                                disabled={disabled}
+                            />
+                        </div>
+                        <div className="field-group">
+                            <label>Sex:</label>
+                            <select
+                                value={data.sex || ''}
+                                onChange={(e) => onChange({ ...data, sex: e.target.value })}
+                                style={{ width: '60px' }}
+                                disabled={disabled}
+                            >
+                                <option value=""> </option>
+                                <option value="M">M</option>
+                                <option value="F">F</option>
+                            </select>
+                        </div>
+                        <div className="field-group">
+                            <label>Date of Birth:</label>
+                            <input
+                                ref={dobInputRef}
+                                type="text"
+                                value={data.dob || ''}
+                                onChange={(e) => onChange({ ...data, dob: validateDate(e.target.value) })}
+                                placeholder="DD-MM-YY"
+                                style={{ width: '90px' }}
+                                disabled={disabled}
+                            />
+                            <button
+                                className="calendar-btn"
+                                onClick={handleCalendarClick}
+                                disabled={disabled}
+                            >
+                                📅
+                            </button>
+                        </div>
+                    </div>
+                    {showCalendar && (
+                        <Calendar
+                            onDateSelect={(date) => {
+                                onChange({ ...data, dob: date });
+                                setShowCalendar(false);
+                            }}
+                            onClose={() => setShowCalendar(false)}
+                            initialDate={parseDate(data.dob)}
+                            position={calendarPos}
+                        />
+                    )}
+                </div>
+            );
+        }
+
+        // Employee Information Component
+        function EmployeeInfo({ data, onChange, disabled }) {
+            const [showCalendar, setShowCalendar] = useState(false);
+            const [calendarPos, setCalendarPos] = useState({ x: 0, y: 0 });
+            const [gradeOptions, setGradeOptions] = useState([]);
+            const [stepOptions, setStepOptions] = useState([]);
+
+            useEffect(() => {
+                updateGradeOptions();
+            }, [data.unit, data.subtype, data.appointment_date]);
+
+            const updateGradeOptions = () => {
+                const unit = data.unit || '';
+                const subtype = data.subtype || '';
+                const appointmentDate = parseDate(data.appointment_date);
+                
+                let grades = [];
+                let steps = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15'];
+
+                if (unit === 'Subeb' || unit === 'Local Government') {
+                    grades = Array.from({ length: 17 }, (_, i) => i + 1).filter(g => g !== 11).map(String);
+                } else if (unit === 'Mainstream' || unit === 'Tescom') {
+                    if (subtype === 'Standard') {
+                        grades = Array.from({ length: 17 }, (_, i) => i + 1).filter(g => g !== 11).map(String);
+                    } else if (subtype === 'HSS' || subtype === 'HSS & HATISS') {
+                        if (appointmentDate) {
+                            const hssStart = new Date(1992, 4, 1);
+                            const hssEnd = new Date(1999, 0, 1);
+                            if (appointmentDate >= hssStart && appointmentDate < hssEnd) {
+                                grades = Array.from({ length: 15 }, (_, i) => `HSS ${i + 1}`);
+                            } else {
+                                grades = Array.from({ length: 17 }, (_, i) => i + 1).map(String);
+                            }
+                        } else {
+                            grades = Array.from({ length: 17 }, (_, i) => i + 1).map(String);
+                        }
+                    } else if (subtype === 'MSS') {
+                        if (appointmentDate) {
+                            const mssStart = new Date(1992, 4, 1);
+                            const mssEnd = new Date(1999, 0, 1);
+                            if (appointmentDate >= mssStart && appointmentDate < mssEnd) {
+                                grades = Array.from({ length: 7 }, (_, i) => `MSS ${i + 1}`);
+                                steps = ['1', '2', '3', '4', '5', '6'];
+                            } else {
+                                grades = Array.from({ length: 17 }, (_, i) => i + 1).filter(g => g !== 11).map(String);
+                            }
+                        } else {
+                            grades = Array.from({ length: 17 }, (_, i) => i + 1).filter(g => g !== 11).map(String);
+                        }
+                    } else {
+                        grades = Array.from({ length: 17 }, (_, i) => i + 1).map(String);
+                    }
+                } else {
+                    grades = Array.from({ length: 17 }, (_, i) => i + 1).map(String);
+                }
+
+                setGradeOptions(grades);
+                setStepOptions(steps);
+            };
+
+            const handleUnitChange = (unit) => {
+                let newData = { ...data, unit };
+                if (unit === 'Subeb' || unit === 'Local Government') {
+                    newData.subtype = 'Standard';
+                } else if (unit === 'Mainstream' || unit === 'Tescom') {
+                    if (!newData.subtype) {
+                        newData.subtype = 'Standard';
+                    }
+                } else {
+                    newData.subtype = '';
+                }
+                onChange(newData);
+            };
+
+            const handleCalendarClick = (e) => {
+                if (disabled) return;
+                const rect = e.target.getBoundingClientRect();
+                setCalendarPos({ x: rect.left, y: rect.bottom + 5 });
+                setShowCalendar(true);
+            };
+
+            const validateDate = (text) => {
+                if (!text) return '';
+                return text.replace(/[^\d-]/g, '');
+            };
+
+            return (
+                <div className="section">
+                    <div className="section-title">Employee Information</div>
+                    <div className="fields-row">
+                        <div className="field-group">
+                            <label>Unit:</label>
+                            <select
+                                value={data.unit || ''}
+                                onChange={(e) => handleUnitChange(e.target.value)}
+                                disabled={disabled}
+                            >
+                                <option value=""> </option>
+                                <option value="Mainstream">Mainstream</option>
+                                <option value="Local Government">Local Government</option>
+                                <option value="Tescom">Tescom</option>
+                                <option value="Subeb">Subeb</option>
+                            </select>
+                        </div>
+                        <div className="field-group">
+                            <label>Sub-Type:</label>
+                            <select
+                                value={data.subtype || ''}
+                                onChange={(e) => onChange({ ...data, subtype: e.target.value })}
+                                disabled={disabled || (data.unit === 'Subeb' || data.unit === 'Local Government')}
+                            >
+                                <option value=""> </option>
+                                <option value="Standard">Standard</option>
+                                <option value="HATISS">HATISS</option>
+                                <option value="HSS">HSS</option>
+                                <option value="HSS & HATISS">HSS & HATISS</option>
+                                <option value="MSS">MSS</option>
+                            </select>
+                        </div>
+                        <div className="field-group">
+                            <label>Date of Appointment:</label>
+                            <input
+                                type="text"
+                                value={data.appointment_date || ''}
+                                onChange={(e) => onChange({ ...data, appointment_date: validateDate(e.target.value) })}
+                                placeholder="DD-MM-YY"
+                                style={{ width: '90px' }}
+                                disabled={disabled}
+                            />
+                            <button
+                                className="calendar-btn"
+                                onClick={handleCalendarClick}
+                                disabled={disabled}
+                            >
+                                📅
+                            </button>
+                        </div>
+                        <div className="field-group">
+                            <label>Initial Grade Level:</label>
+                            <select
+                                value={data.grade || ''}
+                                onChange={(e) => onChange({ ...data, grade: e.target.value })}
+                                style={{ width: '70px' }}
+                                disabled={disabled}
+                            >
+                                <option value=""> </option>
+                                {gradeOptions.map(grade => (
+                                    <option key={grade} value={grade}>{grade}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="field-group">
+                            <label>Initial Step:</label>
+                            <select
+                                value={data.step || ''}
+                                onChange={(e) => onChange({ ...data, step: e.target.value })}
+                                style={{ width: '50px' }}
+                                disabled={disabled}
+                            >
+                                <option value=""> </option>
+                                {stepOptions.map(step => (
+                                    <option key={step} value={step}>{step}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                    {showCalendar && (
+                        <Calendar
+                            onDateSelect={(date) => {
+                                onChange({ ...data, appointment_date: date });
+                                setShowCalendar(false);
+                            }}
+                            onClose={() => setShowCalendar(false)}
+                            initialDate={parseDate(data.appointment_date)}
+                            position={calendarPos}
+                        />
+                    )}
+                </div>
+            );
+        }
+
+        // Promotion History Component
+        function PromotionHistory({ promotions, onPromotionsChange, unit, subtype, disabled }) {
+            const [formData, setFormData] = useState({
+                date: '',
+                grade: '',
+                step: '',
+                type: 'Promotion'
+            });
+            const [editingIndex, setEditingIndex] = useState(-1);
+            const [showCalendar, setShowCalendar] = useState(false);
+            const [calendarPos, setCalendarPos] = useState({ x: 0, y: 0 });
+            const [gradeOptions, setGradeOptions] = useState([]);
+            const [stepOptions, setStepOptions] = useState([]);
+
+            useEffect(() => {
+                updateGradeOptions();
+            }, [unit, subtype, formData.date]);
+
+            const updateGradeOptions = () => {
+                // Similar logic to EmployeeInfo but for promotion dates
+                let grades = [];
+                let steps = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15'];
+
+                if (unit === 'Subeb' || unit === 'Local Government') {
+                    grades = Array.from({ length: 17 }, (_, i) => i + 1).filter(g => g !== 11).map(String);
+                } else if (unit === 'Mainstream' || unit === 'Tescom') {
+                    if (subtype === 'Standard') {
+                        grades = Array.from({ length: 17 }, (_, i) => i + 1).filter(g => g !== 11).map(String);
+                    } else if (subtype === 'HSS' || subtype === 'HSS & HATISS') {
+                        const promoDate = parseDate(formData.date);
+                        if (promoDate) {
+                            const hssStart = new Date(1992, 4, 1);
+                            const hssEnd = new Date(1999, 0, 1);
+                            if (promoDate >= hssStart && promoDate < hssEnd) {
+                                grades = Array.from({ length: 15 }, (_, i) => `HSS ${i + 1}`);
+                            } else {
+                                grades = Array.from({ length: 17 }, (_, i) => i + 1).map(String);
+                            }
+                        } else {
+                            grades = Array.from({ length: 17 }, (_, i) => i + 1).map(String);
+                        }
+                    } else if (subtype === 'MSS') {
+                        const promoDate = parseDate(formData.date);
+                        if (promoDate) {
+                            const mssStart = new Date(1992, 4, 1);
+                            const mssEnd = new Date(1999, 0, 1);
+                            if (promoDate >= mssStart && promoDate < mssEnd) {
+                                grades = Array.from({ length: 7 }, (_, i) => `MSS ${i + 1}`);
+                                steps = ['1', '2', '3', '4', '5', '6'];
+                            } else {
+                                grades = Array.from({ length: 17 }, (_, i) => i + 1).filter(g => g !== 11).map(String);
+                            }
+                        } else {
+                            grades = Array.from({ length: 17 }, (_, i) => i + 1).filter(g => g !== 11).map(String);
+                        }
+                    } else {
+                        grades = Array.from({ length: 17 }, (_, i) => i + 1).map(String);
+                    }
+                } else {
+                    grades = Array.from({ length: 17 }, (_, i) => i + 1).map(String);
+                }
+
+                setGradeOptions(grades);
+                setStepOptions(steps);
+            };
+
+            const addPromotion = () => {
+                if (!formData.date || !formData.grade || !formData.type) return;
+                
+                const newPromo = { ...formData };
+                if (editingIndex >= 0) {
+                    const updated = [...promotions];
+                    updated[editingIndex] = newPromo;
+                    onPromotionsChange(updated);
+                    setEditingIndex(-1);
+                } else {
+                    onPromotionsChange([...promotions, newPromo]);
+                }
+                setFormData({ date: '', grade: '', step: '', type: 'Promotion' });
+            };
+
+            const removePromotion = (index) => {
+                onPromotionsChange(promotions.filter((_, i) => i !== index));
+            };
+
+            const editPromotion = (index) => {
+                setFormData(promotions[index]);
+                setEditingIndex(index);
+            };
+
+            const clearPromotions = () => {
+                if (window.confirm('Clear all promotions?')) {
+                    onPromotionsChange([]);
+                }
+            };
+
+            const handleCalendarClick = (e) => {
+                if (disabled) return;
+                const rect = e.target.getBoundingClientRect();
+                setCalendarPos({ x: rect.left, y: rect.bottom + 5 });
+                setShowCalendar(true);
+            };
+
+            const validateDate = (text) => {
+                if (!text) return '';
+                return text.replace(/[^\d-]/g, '');
+            };
+
+            return (
+                <div className="section">
+                    <div className="section-title">Promotion/Advancement History</div>
+                    <div className="fields-row">
+                        <div className="field-group">
+                            <label>Date:</label>
+                            <input
+                                type="text"
+                                value={formData.date}
+                                onChange={(e) => setFormData({ ...formData, date: validateDate(e.target.value) })}
+                                placeholder="DD-MM-YY"
+                                style={{ width: '90px' }}
+                                disabled={disabled}
+                            />
+                            <button
+                                className="calendar-btn"
+                                onClick={handleCalendarClick}
+                                disabled={disabled}
+                            >
+                                📅
+                            </button>
+                        </div>
+                        <div className="field-group">
+                            <label>New Grade:</label>
+                            <select
+                                value={formData.grade}
+                                onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
+                                style={{ width: '70px' }}
+                                disabled={disabled}
+                            >
+                                <option value=""> </option>
+                                {gradeOptions.map(grade => (
+                                    <option key={grade} value={grade}>{grade}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="field-group">
+                            <label>New Step:</label>
+                            <select
+                                value={formData.step}
+                                onChange={(e) => setFormData({ ...formData, step: e.target.value })}
+                                style={{ width: '50px' }}
+                                disabled={disabled}
+                            >
+                                <option value=""> </option>
+                                {stepOptions.map(step => (
+                                    <option key={step} value={step}>{step}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="field-group">
+                            <label>Type:</label>
+                            <select
+                                value={formData.type}
+                                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                                disabled={disabled}
+                            >
+                                <option value="Promotion">Promotion</option>
+                                <option value="Advancement">Advancement</option>
+                                <option value="Conversion">Conversion</option>
+                                <option value="Harmonization">Harmonization</option>
+                            </select>
+                        </div>
+                        <button onClick={addPromotion} disabled={disabled}>
+                            Add Promotion
+                        </button>
+                    </div>
+                    {promotions.length > 0 && (
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>New Grade</th>
+                                    <th>New Step</th>
+                                    <th>Type</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {promotions.map((promo, idx) => (
+                                    <tr key={idx}>
+                                        <td>{promo.date}</td>
+                                        <td>{promo.grade}</td>
+                                        <td>{promo.step}</td>
+                                        <td>{promo.type}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                    <div className="fields-row" style={{ marginTop: '8px' }}>
+                        <button onClick={() => promotions.length > 0 && removePromotion(promotions.length - 1)} disabled={disabled || promotions.length === 0}>
+                            Remove Promotion
+                        </button>
+                        <button onClick={() => promotions.length > 0 && editPromotion(promotions.length - 1)} disabled={disabled || promotions.length === 0}>
+                            Edit Promotion
+                        </button>
+                        <button onClick={clearPromotions} disabled={disabled || promotions.length === 0}>
+                            Clear All Promotions
+                        </button>
+                    </div>
+                    {showCalendar && (
+                        <Calendar
+                            onDateSelect={(date) => {
+                                setFormData({ ...formData, date });
+                                setShowCalendar(false);
+                            }}
+                            onClose={() => setShowCalendar(false)}
+                            initialDate={parseDate(formData.date)}
+                            position={calendarPos}
+                        />
+                    )}
+                </div>
+            );
+        }
+
+        // Progression Results Component
+        function ProgressionResults({ results, disabled }) {
+            const [showDialog, setShowDialog] = useState(false);
+
+            return (
+                <div className="section">
+                    <div className="section-title">Progression Results</div>
+                    <button onClick={() => setShowDialog(true)} disabled={disabled || results.length === 0}>
+                        Show Results
+                    </button>
+                    {showDialog && results.length > 0 && (
+                        <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'white', padding: '20px', border: '1px solid #ccc', borderRadius: '4px', zIndex: 2000, maxWidth: '800px', maxHeight: '600px', overflow: 'auto' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                                <h3>Salary Progression Results</h3>
+                                <button onClick={() => setShowDialog(false)}>Close</button>
+                            </div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Event</th>
+                                        <th>Grade</th>
+                                        <th>Step</th>
+                                        <th>Salary</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {results.map((result, idx) => (
+                                        <tr key={idx}>
+                                            <td>{result.date || ''}</td>
+                                            <td>{result.event || ''}</td>
+                                            <td>{result.grade || ''}</td>
+                                            <td>{result.step || ''}</td>
+                                            <td>{result.salary ? parseFloat(result.salary).toFixed(2) : ''}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // Export Management Component
+        function ExportManagement({ sessionActive, sessionData, onNewSession, onContinueSession, onExportSession, disabled }) {
+            return (
+                <div className="section">
+                    <div className="section-title">Export Management</div>
+                    <div className="fields-row">
+                        <button onClick={onNewSession} disabled={disabled}>
+                            New Session
+                        </button>
+                        <button onClick={onContinueSession} disabled={disabled || sessionActive || sessionData.length === 0}>
+                            Continue Session
+                        </button>
+                        <button onClick={onExportSession} disabled={disabled || sessionData.length === 0}>
+                            Export Session
+                        </button>
+                    </div>
+                    <div className={`session-status ${sessionActive ? 'session-active' : 'session-inactive'}`}>
+                        {sessionActive ? `Active session - ${sessionData.length} entries` : sessionData.length > 0 ? `Inactive session - ${sessionData.length} entries` : 'No active session'}
+                    </div>
+                </div>
+            );
+        }
+
+        // Main App Component
+        function SalaryProgressionApp() {
+            const [personalInfo, setPersonalInfo] = useState({ name: '', oracle_number: '', sex: '', dob: '' });
+            const [employeeInfo, setEmployeeInfo] = useState({ unit: '', subtype: '', appointment_date: '', grade: '', step: '' });
+            const [promotions, setPromotions] = useState([]);
+            const [results, setResults] = useState([]);
+            const [finalStatus, setFinalStatus] = useState('Grade: -- Step: --');
+            const [sessionActive, setSessionActive] = useState(false);
+            const [sessionData, setSessionData] = useState([]);
+            const [error, setError] = useState(null);
+            const [loading, setLoading] = useState(false);
+
+            const API_BASE = 'http://localhost:8000';
+            const API_KEY = 'CHANGEME';
+
+            const headers = {
+                'X-API-Key': API_KEY,
+                'Content-Type': 'application/json'
+            };
+
+            const validateSession = () => {
+                if (!sessionActive) {
+                    alert('Please start a new session before making entries');
+                    return false;
+                }
+                return true;
+            };
+
+            const calculateProgression = async () => {
+                if (!validateSession()) return;
+                if (!employeeInfo.appointment_date || !employeeInfo.grade || !employeeInfo.step) {
+                    alert('Please fill in all required employee information');
+                    return;
+                }
+
+                setLoading(true);
+                setError(null);
+
+                try {
+                    // Format initial grade matching desktop app format (employee_info.get_data())
+                    // Desktop app: HSS grades return as int with hss_grade flag, MSS as string "MSS X" with mss_grade flag
+                    let initialGrade = employeeInfo.grade;
+                    let hssGradeFlag = false;
+                    let mssGradeFlag = false;
+                    
+                    if (typeof initialGrade === 'string') {
+                        if (initialGrade.startsWith('HSS ')) {
+                            // Extract numeric part and set flag (matching desktop app)
+                            initialGrade = parseInt(initialGrade.replace('HSS ', ''));
+                            hssGradeFlag = true;
+                        } else if (initialGrade.startsWith('MSS ')) {
+                            // Keep as string "MSS X" and set flag (matching desktop app)
+                            mssGradeFlag = true;
+                        } else {
+                            // Try to parse as int
+                            initialGrade = parseInt(initialGrade) || initialGrade;
+                        }
+                    } else {
+                        initialGrade = parseInt(initialGrade) || initialGrade;
+                    }
+                    
+                    // Convert promotions to API format (matching desktop app promotion_history.get_data())
+                    const promotionEntries = promotions.map(p => {
+                        let promoGrade = p.grade;
+                        let promoHssFlag = false;
+                        let promoMssFlag = false;
+                        
+                        if (typeof promoGrade === 'string') {
+                            if (promoGrade.startsWith('HSS ')) {
+                                // Extract numeric part and set flag (matching desktop app)
+                                promoGrade = parseInt(promoGrade.replace('HSS ', ''));
+                                promoHssFlag = true;
+                            } else if (promoGrade.startsWith('MSS ')) {
+                                // Keep as string "MSS X" and set flag (matching desktop app)
+                                promoMssFlag = true;
+                            } else {
+                                // Try to parse as int
+                                promoGrade = parseInt(promoGrade) || promoGrade;
+                            }
+                        } else {
+                            promoGrade = parseInt(promoGrade) || promoGrade;
+                        }
+                        
+                        return {
+                            date: p.date,
+                            promotion_type: p.type,
+                            grade: promoGrade,  // Use 'grade' key (matching desktop app)
+                            new_grade: promoGrade,  // Also include 'new_grade' for compatibility
+                            step: p.step ? parseInt(p.step) : null,
+                            new_step: p.step ? parseInt(p.step) : null,
+                            hss_grade: promoHssFlag,
+                            mss_grade: promoMssFlag
+                        };
+                    });
+
+                    const payload = {
+                        employees: [{
+                            employee_id: personalInfo.oracle_number || 'TEMP001',
+                            first_name: personalInfo.name.split(' ')[0] || '',
+                            last_name: personalInfo.name.split(' ').slice(1).join(' ') || '',
+                            appointment_date: employeeInfo.appointment_date,
+                            current_grade: initialGrade,
+                            initial_grade: initialGrade,  // Also include 'initial_grade' for compatibility
+                            current_step: parseInt(employeeInfo.step) || 1,
+                            initial_step: parseInt(employeeInfo.step) || 1,  // Also include 'initial_step' for compatibility
+                            unit_type: employeeInfo.unit,
+                            unit: employeeInfo.unit,  // Also include 'unit' for compatibility
+                            sub_type: employeeInfo.subtype,
+                            subtype: employeeInfo.subtype,  // Also include 'subtype' for compatibility
+                            hss_grade: hssGradeFlag,
+                            mss_grade: mssGradeFlag,
+                            promotions: promotionEntries
+                        }]
+                    };
+
+                    const res = await fetch(`${API_BASE}/api/v1/compute`, {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!res.ok) {
+                        let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+                        try {
+                            const errorData = await res.json();
+                            // Extract error message from various possible formats
+                            if (errorData.detail) {
+                                // FastAPI error format
+                                if (Array.isArray(errorData.detail)) {
+                                    // Multiple validation errors
+                                    errorMessage = errorData.detail.map(e => {
+                                        if (typeof e === 'string') return e;
+                                        if (e.loc && e.msg) return `${e.loc.join('.')}: ${e.msg}`;
+                                        return JSON.stringify(e);
+                                    }).join('; ');
+                                } else if (typeof errorData.detail === 'string') {
+                                    errorMessage = errorData.detail;
+                                } else {
+                                    errorMessage = JSON.stringify(errorData.detail);
+                                }
+                            } else if (errorData.message) {
+                                errorMessage = errorData.message;
+                            } else if (errorData.error) {
+                                errorMessage = typeof errorData.error === 'string' ? errorData.error : JSON.stringify(errorData.error);
+                            } else if (errorData.errors && Array.isArray(errorData.errors)) {
+                                errorMessage = errorData.errors.join('; ');
+                            }
+                        } catch (parseError) {
+                            // If JSON parsing fails, use the status text
+                            errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+                        }
+                        throw new Error(errorMessage);
+                    }
+
+                    const data = await res.json();
+                    if (data.results && data.results.length > 0) {
+                        const result = data.results[0];
+                        if (result.error) {
+                            throw new Error(result.error);
+                        }
+                        
+                        // Format results (result.history is already formatted by backend using DateHandler.format_date)
+                        const formattedResults = result.history || [];
+                        
+                        setResults(formattedResults);
+                        
+                        // Set final status (matching desktop app format: "Grade: X Step: Y")
+                        const finalGrade = result.computed_grade || '--';
+                        const finalStep = result.computed_step || '--';
+                        setFinalStatus(`Grade: ${finalGrade} Step: ${finalStep}`);
+                    }
+                } catch (err) {
+                    // Extract error message properly - handle both Error objects and plain objects
+                    let errorMessage = 'Calculation failed';
+                    try {
+                        if (err instanceof Error) {
+                            errorMessage = err.message || 'Calculation failed';
+                        } else if (typeof err === 'string') {
+                            errorMessage = err;
+                        } else if (err && typeof err === 'object') {
+                            // Try to extract message from various possible error formats
+                            errorMessage = err.message || err.detail || err.error || err.toString();
+                            // If it's still an object or looks like [object Object], try JSON.stringify
+                            if (errorMessage === '[object Object]' || typeof errorMessage === 'object') {
+                                errorMessage = JSON.stringify(err);
+                            }
+                        } else {
+                            errorMessage = String(err);
+                        }
+                    } catch (extractError) {
+                        // Fallback if error extraction fails
+                        errorMessage = 'An unexpected error occurred during calculation';
+                        console.error('Error extracting error message:', extractError);
+                    }
+                    setError(errorMessage);
+                    console.error('Calculation error:', err);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const clearAll = () => {
+                if (!window.confirm('Are you sure you want to clear all data?')) return;
+                setPersonalInfo({ name: '', oracle_number: '', sex: '', dob: '' });
+                setEmployeeInfo({ unit: '', subtype: '', appointment_date: '', grade: '', step: '' });
+                setPromotions([]);
+                setResults([]);
+                setFinalStatus('Grade: -- Step: --');
+            };
+
+            const saveForExport = () => {
+                if (!validateSession()) return;
+                if (!personalInfo.name || !personalInfo.sex || !personalInfo.dob) {
+                    alert('Please fill in all required personal information (Name, Sex, Date of Birth)');
+                    return;
+                }
+
+                const exportEntry = {
+                    name: personalInfo.name,
+                    oracle_number: personalInfo.oracle_number,
+                    sex: personalInfo.sex,
+                    dob: personalInfo.dob,
+                    unit: employeeInfo.unit,
+                    subtype: employeeInfo.subtype,
+                    appointment_date: employeeInfo.appointment_date,
+                    final_status: finalStatus
+                };
+
+                setSessionData([...sessionData, exportEntry]);
+                
+                // Clear form
+                clearAll();
+                
+                // Reset to defaults
+                setEmployeeInfo({ ...employeeInfo, grade: '1', step: '1' });
+                
+                alert('Data saved successfully');
+            };
+
+            const handleNewSession = () => {
+                if (sessionActive && sessionData.length > 0) {
+                    if (!window.confirm('Previous session not exported. Continue anyway?')) return;
+                }
+                setSessionActive(true);
+                setSessionData([]);
+            };
+
+            const handleContinueSession = () => {
+                setSessionActive(true);
+            };
+
+            const handleExportSession = async () => {
+                if (sessionData.length === 0) {
+                    alert('No data to export');
+                    return;
+                }
+
+                // Create CSV content
+                const headers = ['S/N', 'AGENCY CODE', 'ORACLE NO', 'SEX', "PARTICIPANT'S NAME", 'DATE OF BIRTH', 'DATE OF EMPLOYMENT', 'GRADE LEVEL AND STEP', 'BASIC SALARY', 'PENSIONABLE ALLOWANCE'];
+                const rows = sessionData.map((entry, idx) => [
+                    idx + 1,
+                    '', // Agency code
+                    entry.oracle_number || '',
+                    entry.sex || '',
+                    entry.name || '',
+                    entry.dob || '',
+                    entry.appointment_date || '',
+                    entry.final_status || '',
+                    '', // Basic salary
+                    ''  // Pensionable allowance
+                ]);
+
+                const csvContent = [
+                    headers.join(','),
+                    ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+                ].join('\n');
+
+                // Download CSV
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `salary_progression_export_${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                // Clear session after export
+                setSessionActive(false);
+                setSessionData([]);
+                alert('Session exported successfully');
+            };
+
+            const inputsDisabled = !sessionActive;
+
+            return (
+                <div className="app-container">
+                    {error && <div className="error-message">{error}</div>}
+                    <PersonalInfo
+                        data={personalInfo}
+                        onChange={(data) => {
+                            if (validateSession()) setPersonalInfo(data);
+                        }}
+                        disabled={inputsDisabled}
+                    />
+                    <EmployeeInfo
+                        data={employeeInfo}
+                        onChange={(data) => {
+                            if (validateSession()) setEmployeeInfo(data);
+                        }}
+                        disabled={inputsDisabled}
+                    />
+                    <div className="history-results-container">
+                        <PromotionHistory
+                            promotions={promotions}
+                            onPromotionsChange={(promos) => {
+                                if (validateSession()) setPromotions(promos);
+                            }}
+                            unit={employeeInfo.unit}
+                            subtype={employeeInfo.subtype}
+                            disabled={inputsDisabled}
+                        />
+                        <ProgressionResults
+                            results={results}
+                            disabled={inputsDisabled}
+                        />
+                    </div>
+                    <div className="section">
+                        <div className="calc-status-container">
+                            <div className="calc-buttons">
+                                <button onClick={calculateProgression} disabled={inputsDisabled || loading}>
+                                    {loading ? 'Calculating...' : 'Calculate Progression'}
+                                </button>
+                                <button onClick={clearAll} disabled={inputsDisabled}>
+                                    Clear
+                                </button>
+                            </div>
+                            <div className="final-status">
+                                <div className="final-status-label">Final Status as @ 31st March, 2007</div>
+                                <div className="final-status-value">{finalStatus}</div>
+                            </div>
+                            <button onClick={saveForExport} disabled={inputsDisabled} style={{ alignSelf: 'flex-start', marginTop: '12px' }}>
+                                Save for Export
+                            </button>
+                        </div>
+                    </div>
+                    <ExportManagement
+                        sessionActive={sessionActive}
+                        sessionData={sessionData}
+                        onNewSession={handleNewSession}
+                        onContinueSession={handleContinueSession}
+                        onExportSession={handleExportSession}
+                        disabled={false}
+                    />
+                </div>
+            );
+        }
+
+        ReactDOM.render(<SalaryProgressionApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
