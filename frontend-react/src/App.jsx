@@ -1,9 +1,13 @@
-import React, { useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import SalaryProgressionSidebar from "./SalaryProgressionSidebar";
+import MainLayout from "./MainLayout";
 
 export default function App() {
   const apiBaseUrl = process.env.REACT_APP_API_URL || "http://localhost:8000";
   const authToken = process.env.REACT_APP_API_KEY || "CHANGEME";
+
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [progressionResult, setProgressionResult] = useState(null);
 
   const initialEmployees = useMemo(
     () => [
@@ -22,14 +26,27 @@ export default function App() {
 
   return (
     <div style={{ height: "100vh" }}>
-      <SalaryProgressionSidebar
+      {/* Main layout is always the root view */}
+      <MainLayout
         apiBaseUrl={apiBaseUrl}
         authToken={authToken}
-        initialEmployees={initialEmployees}
-        onClose={() => {}}
-        onResult={() => {}}
+        progressionResult={progressionResult}
+        onOpenSidebar={() => setShowSidebar(true)}
       />
+
+      {/* Sidebar renders as overlay only when triggered */}
+      {showSidebar && (
+        <SalaryProgressionSidebar
+          apiBaseUrl={apiBaseUrl}
+          authToken={authToken}
+          initialEmployees={initialEmployees}
+          onClose={() => setShowSidebar(false)}
+          onResult={(result) => {
+            setProgressionResult(result);
+            setShowSidebar(false);
+          }}
+        />
+      )}
     </div>
   );
 }
-
