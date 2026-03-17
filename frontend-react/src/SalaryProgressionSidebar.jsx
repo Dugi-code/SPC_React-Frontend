@@ -15,6 +15,7 @@
  */
 import React, { useState, useEffect } from "react";
 import ProgressionReport from "./ProgressionReport";
+import "./SalaryProgressionSidebar.css";
 
 export default function SalaryProgressionSidebar({
   apiBaseUrl,
@@ -237,130 +238,12 @@ export default function SalaryProgressionSidebar({
     }
   }
 
-  const defaultStyles = {
-    container: {
-      width: "400px",
-      padding: "16px",
-      background: "#fff",
-      boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-      fontFamily: "system-ui, -apple-system, sans-serif",
-      fontSize: "14px",
-      maxHeight: "100vh",
-      overflowY: "auto"
-    },
-    header: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: "16px",
-      paddingBottom: "12px",
-      borderBottom: "1px solid #e0e0e0"
-    },
-    title: {
-      margin: 0,
-      fontSize: "18px",
-      fontWeight: "600",
-      color: "#333"
-    },
-    closeButton: {
-      background: "none",
-      border: "none",
-      fontSize: "24px",
-      cursor: "pointer",
-      color: "#666",
-      padding: "0 8px"
-    },
-    section: {
-      marginBottom: "16px"
-    },
-    label: {
-      display: "block",
-      marginBottom: "6px",
-      fontWeight: "500",
-      color: "#555"
-    },
-    textarea: {
-      width: "100%",
-      minHeight: "120px",
-      padding: "8px",
-      border: "1px solid #ccc",
-      borderRadius: "4px",
-      fontFamily: "monospace",
-      fontSize: "12px",
-      resize: "vertical",
-      boxSizing: "border-box"
-    },
-    select: {
-      width: "100%",
-      padding: "6px",
-      border: "1px solid #ccc",
-      borderRadius: "4px",
-      fontSize: "14px"
-    },
-    button: {
-      padding: "10px 16px",
-      marginRight: "8px",
-      marginBottom: "8px",
-      border: "none",
-      borderRadius: "4px",
-      fontSize: "14px",
-      fontWeight: "500",
-      cursor: "pointer",
-      transition: "background-color 0.2s"
-    },
-    buttonPrimary: {
-      background: "#007bff",
-      color: "white"
-    },
-    buttonSecondary: {
-      background: "#6c757d",
-      color: "white"
-    },
-    buttonDisabled: {
-      background: "#ccc",
-      color: "#666",
-      cursor: "not-allowed"
-    },
-    error: {
-      padding: "12px",
-      background: "#fee",
-      border: "1px solid #fcc",
-      borderRadius: "4px",
-      color: "#c33",
-      marginBottom: "12px"
-    },
-    success: {
-      padding: "12px",
-      background: "#efe",
-      border: "1px solid #cfc",
-      borderRadius: "4px",
-      color: "#3c3",
-      marginBottom: "12px"
-    },
-    results: {
-      marginTop: "16px",
-      padding: "12px",
-      background: "#f8f9fa",
-      borderRadius: "4px",
-      maxHeight: "300px",
-      overflowY: "auto"
-    },
-    resultsPre: {
-      margin: 0,
-      whiteSpace: "pre-wrap",
-      fontSize: "12px",
-      fontFamily: "monospace"
-    },
-    fileInput: {
-      marginBottom: "12px"
-    }
-  };
-
-  const mergedStyles = {
-    container: { ...defaultStyles.container, ...styles.container },
-    header: { ...defaultStyles.header, ...styles.header },
-    title: { ...defaultStyles.title, ...styles.title },
-    closeButton: { ...defaultStyles.closeButton, ...styles.closeButton }
+  // Optional inline style overrides from props (applied on top of CSS classes)
+  const overrideStyles = {
+    container: styles.container || {},
+    header: styles.header || {},
+    title: styles.title || {},
+    closeButton: styles.closeButton || {}
   };
 
   function buildReportFilename() {
@@ -426,25 +309,25 @@ export default function SalaryProgressionSidebar({
   }
 
   return (
-    <div style={mergedStyles.container}>
-      <div style={mergedStyles.header}>
-        <h3 style={mergedStyles.title}>Salary Progression</h3>
+    <div className="sps-container" style={overrideStyles.container}>
+      <div className="sps-header" style={overrideStyles.header}>
+        <h3 className="sps-title" style={overrideStyles.title}>Salary Progression</h3>
         {onClose && (
-          <button onClick={onClose} style={mergedStyles.closeButton} title="Close">
+          <button onClick={onClose} className="sps-close-btn" style={overrideStyles.closeButton} title="Close">
             ✕
           </button>
         )}
       </div>
 
-      {error && <div style={defaultStyles.error}>{error}</div>}
-      {uploadStatus && <div style={defaultStyles.success}>{uploadStatus}</div>}
+      {error && <div className="sps-error">{error}</div>}
+      {uploadStatus && <div className="sps-success">{uploadStatus}</div>}
 
-      <div style={defaultStyles.section}>
-        <label style={defaultStyles.label}>Salary Table (Optional)</label>
+      <div className="sps-section">
+        <label className="sps-label">Salary Table (Optional)</label>
         <select
           value={selectedTableId || ""}
           onChange={(e) => setSelectedTableId(e.target.value || null)}
-          style={defaultStyles.select}
+          className="sps-select"
         >
           <option value="">Use default table</option>
           {salaryTables.map((table) => (
@@ -455,76 +338,59 @@ export default function SalaryProgressionSidebar({
         </select>
       </div>
 
-      <div style={defaultStyles.section}>
-        <label style={defaultStyles.label}>Upload Salary Table</label>
+      <div className="sps-section">
+        <label className="sps-label">Upload Salary Table</label>
         <input
           type="file"
           accept=".xlsx,.xls"
           onChange={handleFileUpload}
-          style={defaultStyles.fileInput}
+          className="sps-file-input"
           disabled={loading}
         />
       </div>
 
-      <div style={defaultStyles.section}>
-        <label style={defaultStyles.label}>
+      <div className="sps-section">
+        <label className="sps-label">
           Employee Data (JSON Array)
         </label>
         <textarea
           value={employeesText}
           onChange={(e) => setEmployeesText(e.target.value)}
           placeholder={`[\n  {\n    "employee_id": "E123",\n    "first_name": "Ada",\n    "last_name": "Ibekwe",\n    "appointment_date": "1999-03-12",\n    "current_grade": "GL8",\n    "current_step": 4,\n    "calculation_method": "mainstream",\n    "unit_type": "Mainstream",\n    "sub_type": "Standard"\n  }\n]`}
-          style={defaultStyles.textarea}
+          className="sps-textarea"
           disabled={loading}
         />
       </div>
 
-      <div style={defaultStyles.section}>
+      <div className="sps-section">
         <button
           onClick={handleCompute}
           disabled={loading || !employeesText.trim()}
-          style={{
-            ...defaultStyles.button,
-            ...defaultStyles.buttonPrimary,
-            ...(loading || !employeesText.trim() ? defaultStyles.buttonDisabled : {})
-          }}
+          className="sps-btn sps-btn-primary"
         >
           {loading ? "Computing..." : "Compute"}
         </button>
         <button
           onClick={handleExport}
           disabled={loading || !employeesText.trim()}
-          style={{
-            ...defaultStyles.button,
-            ...defaultStyles.buttonSecondary,
-            ...(loading || !employeesText.trim() ? defaultStyles.buttonDisabled : {})
-          }}
+          className="sps-btn sps-btn-secondary"
         >
           {loading ? "Exporting..." : "Export Zamara"}
         </button>
       </div>
 
       {results && (
-        <div style={defaultStyles.results}>
+        <div className="sps-results">
           <strong>Raw Results (JSON):</strong>
-          <pre style={defaultStyles.resultsPre}>
+          <pre className="sps-results-pre">
             {JSON.stringify(results, null, 2)}
           </pre>
         </div>
       )}
 
       {reportContext && (
-        <div style={{ marginTop: "24px", borderTop: "2px solid #007bff", paddingTop: "16px" }}>
-          <div style={{
-            backgroundColor: "#007bff",
-            color: "white",
-            padding: "12px",
-            marginBottom: "16px",
-            borderRadius: "4px",
-            fontWeight: "600",
-            fontSize: "16px",
-            textAlign: "center"
-          }}>
+        <div className="sps-report-section">
+          <div className="sps-report-banner">
             📊 Salary Progression Report
           </div>
           <ProgressionReport
@@ -537,14 +403,7 @@ export default function SalaryProgressionSidebar({
       )}
 
       {!reportContext && results && (
-        <div style={{
-          marginTop: "16px",
-          padding: "12px",
-          backgroundColor: "#fff3cd",
-          border: "1px solid #ffc107",
-          borderRadius: "4px",
-          color: "#856404"
-        }}>
+        <div className="sps-info-warning">
           ℹ️ Report generation requires employee and result data. Check the raw results above.
         </div>
       )}
