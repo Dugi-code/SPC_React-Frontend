@@ -626,7 +626,18 @@ function ExportManagement({ sessionActive, sessionData, onNewSession, onContinue
     <div style={s.section}>
       <div style={s.sectionTitle}>Export Management</div>
       <div style={s.fieldsRow}>
-        <button style={s.btn} onClick={onNewSession}>New Session</button>
+        <button
+          style={{
+            ...s.btn,
+            background: sessionActive ? "#F0F0F0" : "#0078D7",
+            color: sessionActive ? "#333" : "white",
+            fontWeight: sessionActive ? "normal" : "bold",
+            border: sessionActive ? "1px solid #ccc" : "1px solid #0078D7",
+          }}
+          onClick={onNewSession}
+        >
+          New Session
+        </button>
         <button style={s.btn} onClick={onContinueSession} disabled={sessionActive || sessionData.length === 0}>Continue Session</button>
         <button style={s.btn} onClick={onExportSession} disabled={sessionData.length === 0}>Export Session</button>
       </div>
@@ -796,6 +807,30 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
       <div style={{ maxWidth: "1400px", margin: "0 auto", background: "white", borderRadius: "4px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", overflow: "hidden" }}>
 
         {error && <div style={{ color: "#c33", background: "#fee", border: "1px solid #fcc", padding: "8px", borderRadius: "4px", margin: "8px" }}>{error}</div>}
+
+        {/* Session required banner — visible and actionable */}
+        {!sessionActive && (
+          <div style={{
+            background: "#fff3cd", border: "1px solid #ffc107",
+            borderRadius: "4px", margin: "10px", padding: "10px 14px",
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            flexWrap: "wrap", gap: "8px",
+          }}>
+            <span style={{ fontSize: "13px", color: "#856404", fontWeight: "bold" }}>
+              ⚠ Click "New Session" to begin entering data and calculating progression.
+            </span>
+            <button
+              style={{
+                ...s.btn,
+                background: "#0078D7", color: "white",
+                border: "1px solid #0078D7", fontWeight: "bold",
+              }}
+              onClick={handleNewSession}
+            >
+              New Session
+            </button>
+          </div>
+        )}
 
         <PersonalInfo data={personalInfo} onChange={d => { if (validateSession()) setPersonalInfo(d); }} disabled={inputsDisabled} />
         <EmployeeInfo data={employeeInfo} onChange={d => { if (validateSession()) setEmployeeInfo(d); }} disabled={inputsDisabled} />
