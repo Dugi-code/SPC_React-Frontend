@@ -5,6 +5,10 @@
       "destination": "https://spc-fast-python-backend.onrender.com/api/:path*"
     },
     {
+      "source": "/media/:path*",
+      "destination": "https://spc-fast-python-backend.onrender.com/media/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

@@ -630,12 +630,54 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
       const res = await fetch(`${apiBaseUrl}/api/v1/export/zamara`, { method:"POST", headers, body: JSON.stringify({employees:employeesForExport}) });
       if (!res.ok) { const e=await res.json().catch(()=>({detail:res.statusText})); throw new Error(e.detail||`HTTP ${res.status}`); }
       const data = await res.json();
-      if (data.status==="ok"&&data.file_url) {
-        const dlRes = await fetch(`${apiBaseUrl}${data.file_url}`,{headers:{"X-API-Key":authToken}});
-        if (!dlRes.ok) throw new Error("Failed to download export file");
-        const blob=await dlRes.blob(); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=data.filename||"salary_progression_export.xlsx"; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-        setSessionActive(false); setSessionData([]); alert("Session exported successfully.");
-      } else { throw new Error("Invalid response from export API."); }
+      if (data.status === "ok" && data.file_url) {
+        // ── Download the generated Excel file ─────────────────────────────
+        // file_url is "/media/filename.xlsx" — proxied via Vercel to Render.
+        // The /media route is a FastAPI StaticFiles mount and does not require
+        // the X-API-Key header, so we omit it to avoid CORS preflight issues.
+        const downloadUrl = `${apiBaseUrl}${data.file_url}`;
+        const filename    = data.filename || "salary_progression_export.xlsx";
+
+        const dlRes = await fetch(downloadUrl);
+
+        if (!dlRes.ok) {
+          throw new Error(`File download failed: HTTP ${dlRes.status}`);
+        }
+
+        // Guard: reject if the response is HTML (means the proxy returned the
+        // SPA index.html instead of the Excel file — vercel.json misconfiguration).
+        const contentType = dlRes.headers.get("content-type") || "";
+        if (contentType.includes("text/html")) {
+          throw new Error(
+            "Download returned an HTML page instead of an Excel file. " +
+            "Ensure /media/:path* is proxied in vercel.json."
+          );
+        }
+
+        const blob = await dlRes.blob();
+
+        // Verify the blob is non-empty
+        if (blob.size === 0) {
+          throw new Error("Downloaded file is empty. Please try again.");
+        }
+
+        // Trigger browser download
+        const objectUrl = URL.createObjectURL(blob);
+        const anchor    = document.createElement("a");
+        anchor.href     = objectUrl;
+        anchor.download = filename;
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        URL.revokeObjectURL(objectUrl);
+
+        setSessionActive(false);
+        setSessionData([]);
+        alert("Session exported successfully.");
+
+      } else {
+        throw new Error("Invalid response from export API.");
+      }
     } catch (err) { const msg=err.message||"Export failed"; setGlobalError(msg); alert(`Export failed: ${msg}`); }
     finally { setLoading(false); }
   };
