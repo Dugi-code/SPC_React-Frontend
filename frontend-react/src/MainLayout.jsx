@@ -474,12 +474,9 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
     if (!employeeInfo.grade)            { const m="Missing: Initial Grade Level";  setCalcError(m); log(m,"error"); return; }
     if (!employeeInfo.step)             { const m="Missing: Initial Step";         setCalcError(m); log(m,"error"); return; }
 
-    const isoDate = toISODate(employeeInfo.appointment_date);
-    log(`appointment_date ISO conversion: "${employeeInfo.appointment_date}" → "${isoDate}"`);
-    if (!isoDate) {
-      const m = `Date "${employeeInfo.appointment_date}" could not be converted to ISO format. Use DD-MM-YY.`;
-      setCalcError(m); log(m,"error"); return;
-    }
+    // Send date exactly as typed (DD-MM-YY) — backend parses this format natively
+    const rawDate = employeeInfo.appointment_date;
+    log(`appointment_date sent as-is: "${rawDate}"`);
 
     setLoading(true);
     setCalcError(null);
@@ -491,16 +488,16 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
 
       const promotionEntries = promotions.map((p, i) => {
         const { grade: pg, hss: phss, mss: pmss } = parseGradeFlags(p.grade);
-        const promoISO = toISODate(p.date);
-        log(`Promotion[${i}]: date "${p.date}" → "${promoISO}"  grade="${p.grade}"`);
-        return { date: promoISO, promotion_type: p.type, grade: pg, new_grade: pg, step: p.step ? parseInt(p.step,10) : null, new_step: p.step ? parseInt(p.step,10) : null, hss_grade: phss, mss_grade: pmss };
+        // Send promotion date as-is — backend parses DD-MM-YY natively
+        log(`Promotion[${i}]: date="${p.date}" grade="${p.grade}" step="${p.step}" type="${p.type}"`);
+        return { date: p.date, promotion_type: p.type, grade: pg, new_grade: pg, step: p.step ? parseInt(p.step,10) : null, new_step: p.step ? parseInt(p.step,10) : null, hss_grade: phss, mss_grade: pmss };
       });
 
       const employeeData = {
         employee_id:      personalInfo.oracle_number || `EMP_${Date.now()}`,
         first_name:       personalInfo.name.split(" ")[0] || "",
         last_name:        personalInfo.name.split(" ").slice(1).join(" ") || "",
-        appointment_date: isoDate,
+        appointment_date: rawDate,
         current_grade:    initialGrade,
         initial_grade:    initialGrade,
         current_step:     parseInt(employeeInfo.step, 10) || 1,
@@ -517,7 +514,7 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
           oracle_number:    personalInfo.oracle_number,
           sex:              personalInfo.sex,
           dob:              personalInfo.dob,
-          appointment_date: isoDate,
+          appointment_date: employeeInfo.appointment_date,
           agency_code:      employeeInfo.unit === "Subeb" ? 1 : employeeInfo.unit === "Local Government" ? "L" : "",
         },
       };
@@ -640,9 +637,9 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
         const { grade: ig, hss, mss } = parseGradeFlags(entry.grade);
         const proms = (entry.promotions||[]).map(p => {
           const { grade: pg, hss: phss, mss: pmss } = parseGradeFlags(p.grade);
-          return { date: toISODate(p.date), promotion_type: p.type, grade: pg, new_grade: pg, step: p.step?parseInt(p.step,10):null, new_step: p.step?parseInt(p.step,10):null, hss_grade: phss, mss_grade: pmss };
+          return { date: p.date, promotion_type: p.type, grade: pg, new_grade: pg, step: p.step?parseInt(p.step,10):null, new_step: p.step?parseInt(p.step,10):null, hss_grade: phss, mss_grade: pmss };
         });
-        return { employee_id: entry.oracle_number||`EMP_${Date.now()}`, first_name:(entry.name||"").split(" ")[0]||"", last_name:(entry.name||"").split(" ").slice(1).join(" ")||"", appointment_date: toISODate(entry.appointment_date), current_grade:ig, initial_grade:ig, current_step:parseInt(entry.step,10)||1, initial_step:parseInt(entry.step,10)||1, unit_type:entry.unit, unit:entry.unit, sub_type:entry.subtype, subtype:entry.subtype, hss_grade:hss, mss_grade:mss, promotions:proms, additional_data:{ name:entry.name, oracle_number:entry.oracle_number, sex:entry.sex, dob:entry.dob, appointment_date:toISODate(entry.appointment_date), agency_code:entry.unit==="Subeb"?1:entry.unit==="Local Government"?"L":"" } };
+        return { employee_id: entry.oracle_number||`EMP_${Date.now()}`, first_name:(entry.name||"").split(" ")[0]||"", last_name:(entry.name||"").split(" ").slice(1).join(" ")||"", appointment_date: entry.appointment_date, current_grade:ig, initial_grade:ig, current_step:parseInt(entry.step,10)||1, initial_step:parseInt(entry.step,10)||1, unit_type:entry.unit, unit:entry.unit, sub_type:entry.subtype, subtype:entry.subtype, hss_grade:hss, mss_grade:mss, promotions:proms, additional_data:{ name:entry.name, oracle_number:entry.oracle_number, sex:entry.sex, dob:entry.dob, appointment_date:entry.appointment_date, agency_code:entry.unit==="Subeb"?1:entry.unit==="Local Government"?"L":"" } };
       });
       const res = await fetch(`${apiBaseUrl}/api/v1/export/zamara`, { method:"POST", headers, body: JSON.stringify({employees:employeesForExport}) });
       if (!res.ok) { const e=await res.json().catch(()=>({detail:res.statusText})); throw new Error(e.detail||`HTTP ${res.status}`); }
