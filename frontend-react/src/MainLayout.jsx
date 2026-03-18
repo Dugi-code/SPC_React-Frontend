@@ -550,16 +550,35 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
       setResults(empResults);
 
       if (empResults.length > 0) {
+        // Log the raw result object so we can see exact field names from backend
         const last = empResults[empResults.length - 1];
-        const status = `Grade: ${last.grade ?? "--"} Step: ${last.step ?? "--"}`;
+        log("Raw result[last] keys: " + Object.keys(last).join(", "));
+        log("Raw result[last] full: " + JSON.stringify(last));
+
+        // Defensive field resolution — backend may use any of these field names
+        const resolvedGrade =
+          last.final_grade   != null ? last.final_grade   :
+          last.grade         != null ? last.grade         :
+          last.current_grade != null ? last.current_grade :
+          last.new_grade     != null ? last.new_grade     : "--";
+
+        const resolvedStep =
+          last.final_step    != null ? last.final_step    :
+          last.step          != null ? last.step          :
+          last.current_step  != null ? last.current_step  :
+          last.new_step      != null ? last.new_step      : "--";
+
+        log("Resolved grade=" + resolvedGrade + "  step=" + resolvedStep);
+
+        const status = "Grade: " + resolvedGrade + " Step: " + resolvedStep;
         setFinalStatus(status);
-        log(`Final status set: ${status}`, "success");
+        log("Final status set: " + status, "success");
       } else {
         setFinalStatus("Grade: -- Step: --");
         const m = "API returned 200 but results array is empty. Check backend logic.";
         setCalcError(m);
         log(m, "warn");
-        log(`Full response: ${JSON.stringify(data)}`, "warn");
+        log("Full response: " + JSON.stringify(data), "warn");
       }
 
     } catch (err) {
