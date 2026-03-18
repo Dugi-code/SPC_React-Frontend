@@ -1,10 +1,8 @@
 /**
- * MainLayout.jsx — Production build with embedded diagnostic log
- *
- * The diagnostic log panel (bottom of page) shows every step of the
- * calculate flow in real time so issues are visible without DevTools.
+ * MainLayout.jsx
+ * Production-ready React port of the original index.html SalaryProgressionApp.
  */
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 // ─── Date Utilities ───────────────────────────────────────────────────────────
 
@@ -29,7 +27,7 @@ function formatDate(date) {
   ].join("-");
 }
 
-/** DD-MM-YY  →  YYYY-MM-DD  (ISO 8601 required by backend Pydantic) */
+/** DD-MM-YY → YYYY-MM-DD conversion utility (kept for internal use). */
 function toISODate(dateStr) {
   if (!dateStr) return null;
   const d = parseDate(dateStr);
@@ -387,7 +385,6 @@ function ExportManagement({ sessionActive, sessionData, onNewSession, onContinue
   );
 }
 
-
 // ─── Root MainLayout ──────────────────────────────────────────────────────────
 
 export default function MainLayout({ apiBaseUrl, authToken }) {
@@ -403,10 +400,9 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
   const [calcError,     setCalcError]     = useState(null);
   const [loading,       setLoading]       = useState(false);
 
-
   const headers = { "X-API-Key": authToken, "Content-Type": "application/json" };
 
-  const handleNewSession = useCallback(() => {
+  const handleNewSession = () => {
     // Guard: warn if previous session has unsaved data
     if (sessionActive && sessionData.length > 0) {
       if (!window.confirm("Previous session has " + sessionData.length + " unsaved entries. Start a new session anyway?")) return;
@@ -415,24 +411,23 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
     setSessionData([]);
     setGlobalError(null);
     setCalcError(null);
-  }, [log, sessionActive, sessionData]);
+  };
 
-  const validateSession = useCallback(() => {
+  const validateSession = () => {
     if (!sessionActive) {
       alert("Please click New Session first.");
       return false;
     }
     return true;
-  }, [sessionActive]);
+  };
 
   // ── Calculate Progression ─────────────────────────────────────────────────
-  const calculateProgression = useCallback(async () => {
+  const calculateProgression = async () => {
 
     if (!sessionActive) {
       alert("Please click New Session first.");
       return;
     }
-
 
     if (!employeeInfo.appointment_date) { setCalcError("Missing: Date of Appointment"); return; }
     if (!employeeInfo.grade)            { setCalcError("Missing: Initial Grade Level"); return; }
@@ -483,9 +478,7 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
       const payload = { employees: [employeeData] };
       const url     = `${apiBaseUrl}/api/v1/compute`;
 
-
       const res = await fetch(url, { method:"POST", headers, body: JSON.stringify(payload) });
-
 
       if (!res.ok) {
         let detail = `HTTP ${res.status}: ${res.statusText}`;
@@ -509,7 +502,6 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
       setResults(allHistory);
 
       if (empResults.length > 0) {
-        // Log the raw result object so we can see exact field names from backend
         const last = empResults[empResults.length - 1];
 
         // Field resolution — backend returns computed_grade / computed_step
@@ -529,7 +521,6 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
           last.current_step   != null ? last.current_step   :
           last.new_step       != null ? last.new_step       : "--";
 
-
         const status = "Grade: " + resolvedGrade + " Step: " + resolvedStep;
         setFinalStatus(status);
       } else {
@@ -545,7 +536,7 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
     } finally {
       setLoading(false);
     }
-  }, [sessionActive, apiBaseUrl, authToken, employeeInfo, personalInfo, promotions, headers, log]);
+  };
 
   // ── Clear ─────────────────────────────────────────────────────────────────
   // ── clearAll: wipes everything including unit/subtype. Requires confirmation.
@@ -717,7 +708,6 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
             </div>
           )}
         </div>
-
 
         <ExportManagement
           sessionActive={sessionActive}
