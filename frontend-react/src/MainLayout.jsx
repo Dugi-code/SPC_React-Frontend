@@ -3,7 +3,6 @@
  *
  * The diagnostic log panel (bottom of page) shows every step of the
  * calculate flow in real time so issues are visible without DevTools.
- * Remove the <DiagLog> component and `diagLog` state once working.
  */
 import React, { useState, useEffect, useRef, useCallback } from "react";
 
@@ -388,30 +387,6 @@ function ExportManagement({ sessionActive, sessionData, onNewSession, onContinue
   );
 }
 
-// ─── Diagnostic Log Panel ─────────────────────────────────────────────────────
-// Shows every step of the calculate flow visibly on screen.
-// Remove this component and all diagLog references once the app is confirmed working.
-
-function DiagLog({ entries }) {
-  if (!entries || entries.length === 0) return null;
-  return (
-    <div style={{ margin:"10px", border:"2px solid #0078D7", borderRadius:"4px", background:"#f0f8ff", padding:"10px" }}>
-      <div style={{ fontWeight:"bold", fontSize:"12px", color:"#0078D7", marginBottom:"6px" }}>
-        🔍 Diagnostic Log (remove after testing)
-      </div>
-      {entries.map((e,i) => (
-        <div key={i} style={{ fontSize:"11px", fontFamily:"monospace", padding:"2px 0", color: e.type==="error"?"#c33": e.type==="success"?"#3a3":"#333", borderBottom:"1px solid #dde" }}>
-          <span style={{ color:"#999", marginRight:"6px" }}>{e.time}</span>
-          {e.type==="error" && "❌ "}
-          {e.type==="success" && "✅ "}
-          {e.type==="info" && "ℹ️ "}
-          {e.type==="warn" && "⚠️ "}
-          {e.msg}
-        </div>
-      ))}
-    </div>
-  );
-}
 
 // ─── Root MainLayout ──────────────────────────────────────────────────────────
 
@@ -427,12 +402,7 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
   const [globalError,   setGlobalError]   = useState(null);
   const [calcError,     setCalcError]     = useState(null);
   const [loading,       setLoading]       = useState(false);
-  const [diagLog,       setDiagLog]       = useState([]);
 
-  const log = useCallback((msg, type="info") => {
-    const time = new Date().toLocaleTimeString();
-    setDiagLog(prev => [...prev.slice(-49), { time, msg, type }]);
-  }, []);
 
   const headers = { "X-API-Key": authToken, "Content-Type": "application/json" };
 
@@ -445,8 +415,6 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
     setSessionData([]);
     setGlobalError(null);
     setCalcError(null);
-    setDiagLog([]);
-    log("New session started — inputs and Calculate button unlocked", "success");
   }, [log, sessionActive, sessionData]);
 
   const validateSession = useCallback(() => {
@@ -459,28 +427,19 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
 
   // ── Calculate Progression ─────────────────────────────────────────────────
   const calculateProgression = useCallback(async () => {
-    log("Calculate Progression clicked");
 
     if (!sessionActive) {
-      log("Blocked: no active session", "warn");
       alert("Please click New Session first.");
       return;
     }
 
-    log(`Session active: true`);
-    log(`apiBaseUrl = "${apiBaseUrl}"`);
-    log(`authToken length = ${authToken ? authToken.length : 0}`);
-    log(`appointment_date = "${employeeInfo.appointment_date}"`);
-    log(`grade = "${employeeInfo.grade}"  step = "${employeeInfo.step}"`);
-    log(`unit = "${employeeInfo.unit}"  subtype = "${employeeInfo.subtype}"`);
 
-    if (!employeeInfo.appointment_date) { const m="Missing: Date of Appointment"; setCalcError(m); log(m,"error"); return; }
-    if (!employeeInfo.grade)            { const m="Missing: Initial Grade Level";  setCalcError(m); log(m,"error"); return; }
-    if (!employeeInfo.step)             { const m="Missing: Initial Step";         setCalcError(m); log(m,"error"); return; }
+    if (!employeeInfo.appointment_date) { setCalcError("Missing: Date of Appointment"); return; }
+    if (!employeeInfo.grade)            { setCalcError("Missing: Initial Grade Level"); return; }
+    if (!employeeInfo.step)             { setCalcError("Missing: Initial Step"); return; }
 
     // Send date exactly as typed (DD-MM-YY) — backend parses this format natively
     const rawDate = employeeInfo.appointment_date;
-    log(`appointment_date sent as-is: "${rawDate}"`);
 
     setLoading(true);
     setCalcError(null);
@@ -488,12 +447,10 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
 
     try {
       const { grade: initialGrade, hss: hssFlag, mss: mssFlag } = parseGradeFlags(employeeInfo.grade);
-      log(`Parsed grade: ${JSON.stringify({initialGrade,hssFlag,mssFlag})}`);
 
       const promotionEntries = promotions.map((p, i) => {
         const { grade: pg, hss: phss, mss: pmss } = parseGradeFlags(p.grade);
         // Send promotion date as-is — backend parses DD-MM-YY natively
-        log(`Promotion[${i}]: date="${p.date}" grade="${p.grade}" step="${p.step}" type="${p.type}"`);
         return { date: p.date, promotion_type: p.type, grade: pg, new_grade: pg, step: p.step ? parseInt(p.step,10) : null, new_step: p.step ? parseInt(p.step,10) : null, hss_grade: phss, mss_grade: pmss };
       });
 
@@ -526,30 +483,24 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
       const payload = { employees: [employeeData] };
       const url     = `${apiBaseUrl}/api/v1/compute`;
 
-      log(`Sending POST to: ${url}`);
-      log(`Payload preview: employee_id="${employeeData.employee_id}" appointment_date="${employeeData.appointment_date}" grade=${employeeData.current_grade} step=${employeeData.current_step}`);
 
       const res = await fetch(url, { method:"POST", headers, body: JSON.stringify(payload) });
 
-      log(`Response status: ${res.status} ${res.statusText}`);
 
       if (!res.ok) {
         let detail = `HTTP ${res.status}: ${res.statusText}`;
         try {
           const errBody = await res.json();
-          log(`Error body: ${JSON.stringify(errBody)}`, "error");
           if (errBody.detail) {
             detail = Array.isArray(errBody.detail)
               ? errBody.detail.map(e => typeof e==="string" ? e : `${(e.loc||[]).join(".")}: ${e.msg}`).join("; ")
               : String(errBody.detail);
           }
-        } catch(pe) { log(`Could not parse error body: ${pe.message}`, "warn"); }
+        } catch(pe) { /* ignore parse error, use status text fallback */ }
         throw new Error(detail);
       }
 
       const data = await res.json();
-      log(`Response body keys: ${Object.keys(data).join(", ")}`);
-      log(`results count: ${(data.results||[]).length}`);
 
       const empResults = data.results || [];
       // Each result object contains a `history` array with the full progression.
@@ -560,8 +511,6 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
       if (empResults.length > 0) {
         // Log the raw result object so we can see exact field names from backend
         const last = empResults[empResults.length - 1];
-        log("Raw result[last] keys: " + Object.keys(last).join(", "));
-        log("Raw result[last] full: " + JSON.stringify(last));
 
         // Field resolution — backend returns computed_grade / computed_step
         // (confirmed from diagnostic log). Also checks all other known variants
@@ -580,27 +529,21 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
           last.current_step   != null ? last.current_step   :
           last.new_step       != null ? last.new_step       : "--";
 
-        log("Resolved grade=" + resolvedGrade + "  step=" + resolvedStep);
 
         const status = "Grade: " + resolvedGrade + " Step: " + resolvedStep;
         setFinalStatus(status);
-        log("Final status set: " + status, "success");
       } else {
         setFinalStatus("Grade: -- Step: --");
         const m = "API returned 200 but results array is empty. Check backend logic.";
         setCalcError(m);
-        log(m, "warn");
-        log("Full response: " + JSON.stringify(data), "warn");
       }
 
     } catch (err) {
       const msg = err.message || "Unknown error during calculation";
       setCalcError(msg);
       setFinalStatus("Grade: -- Step: --");
-      log(`CAUGHT ERROR: ${msg}`, "error");
     } finally {
       setLoading(false);
-      log("Calculate complete (finally block)");
     }
   }, [sessionActive, apiBaseUrl, authToken, employeeInfo, personalInfo, promotions, headers, log]);
 
@@ -612,7 +555,6 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
     setEmployeeInfo({ unit:"", subtype:"", appointment_date:"", grade:"", step:"" });
     setPromotions([]); setResults([]); setFinalStatus("Grade: -- Step: --");
     setGlobalError(null); setCalcError(null);
-    log("All data cleared");
   };
 
   // ── clearForNextEntry: clears all EXCEPT unit and subtype so the next
@@ -631,7 +573,6 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
     setResults([]);
     setFinalStatus("Grade: -- Step: --");
     setCalcError(null);
-    log("Form cleared for next entry (unit and subtype preserved)");
   };
 
   // ── saveForExport: validates required fields, saves entry, then calls
@@ -673,7 +614,6 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
     };
 
     setSessionData(prev => [...prev, exportEntry]);
-    log("Entry saved to session: " + exportEntry.name + " — " + finalStatus, "success");
 
     alert("Data saved successfully");
 
@@ -778,8 +718,6 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
           )}
         </div>
 
-        {/* ── Diagnostic log — shows all steps visibly on screen ─────────── */}
-        <DiagLog entries={diagLog} />
 
         <ExportManagement
           sessionActive={sessionActive}
