@@ -351,7 +351,11 @@ function ProgressionResults({ results, disabled, sessionData }) {
           <tbody>{sessionData.map((e,i)=>{
             let gl="--"; if(e.final_status){const gm=e.final_status.match(/Grade:\s*(.+?)\s+Step/),sm=e.final_status.match(/Step:\s*(.+)/); if(gm&&sm) gl=`${gm[1]} ${sm[1]}`;}
             else if(e.computed_grade&&e.computed_step) gl=`${e.computed_grade} ${e.computed_step}`;
-            return <tr key={i}><td style={s.td}>{i+1}</td><td style={s.td}>{e.name||"--"}</td><td style={s.td}>{e.oracle_number||"--"}</td><td style={s.td}>{gl}</td></tr>;
+            // Use computed_grade/step stored at save time, fall back to parsed final_status
+            const displayGL = (e.computed_grade && e.computed_grade !== "--")
+              ? `${e.computed_grade} / ${e.computed_step}`
+              : gl;
+            return <tr key={i}><td style={s.td}>{i+1}</td><td style={s.td}>{e.name||"--"}</td><td style={s.td}>{e.oracle_number||"--"}</td><td style={s.td}>{displayGL}</td></tr>;
           })}</tbody></table>
         </div>)}
       {showReports&&(
@@ -547,7 +551,10 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
       log(`results count: ${(data.results||[]).length}`);
 
       const empResults = data.results || [];
-      setResults(empResults);
+      // Each result object contains a `history` array with the full progression.
+      // Flatten all history entries across results for the Show Results dialog.
+      const allHistory = empResults.flatMap(r => r.history || r.progression || []);
+      setResults(allHistory);
 
       if (empResults.length > 0) {
         // Log the raw result object so we can see exact field names from backend
@@ -555,18 +562,22 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
         log("Raw result[last] keys: " + Object.keys(last).join(", "));
         log("Raw result[last] full: " + JSON.stringify(last));
 
-        // Defensive field resolution — backend may use any of these field names
+        // Field resolution — backend returns computed_grade / computed_step
+        // (confirmed from diagnostic log). Also checks all other known variants
+        // so this remains resilient if the backend schema changes.
         const resolvedGrade =
-          last.final_grade   != null ? last.final_grade   :
-          last.grade         != null ? last.grade         :
-          last.current_grade != null ? last.current_grade :
-          last.new_grade     != null ? last.new_grade     : "--";
+          last.computed_grade != null ? last.computed_grade :
+          last.final_grade    != null ? last.final_grade    :
+          last.grade          != null ? last.grade          :
+          last.current_grade  != null ? last.current_grade  :
+          last.new_grade      != null ? last.new_grade      : "--";
 
         const resolvedStep =
-          last.final_step    != null ? last.final_step    :
-          last.step          != null ? last.step          :
-          last.current_step  != null ? last.current_step  :
-          last.new_step      != null ? last.new_step      : "--";
+          last.computed_step  != null ? last.computed_step  :
+          last.final_step     != null ? last.final_step     :
+          last.step           != null ? last.step           :
+          last.current_step   != null ? last.current_step   :
+          last.new_step       != null ? last.new_step       : "--";
 
         log("Resolved grade=" + resolvedGrade + "  step=" + resolvedStep);
 
@@ -604,7 +615,17 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
   // ── Save for export ───────────────────────────────────────────────────────
   const saveForExport = () => {
     if (!validateSession()) return;
-    setSessionData(prev => [...prev, { ...personalInfo, ...employeeInfo, promotions, final_status: finalStatus }]);
+    // Parse computed_grade / computed_step out of finalStatus for View Entries display
+    const gradeMatch = finalStatus.match(/Grade:\s*(.+?)\s+Step/);
+    const stepMatch  = finalStatus.match(/Step:\s*(.+)/);
+    setSessionData(prev => [...prev, {
+      ...personalInfo,
+      ...employeeInfo,
+      promotions,
+      final_status:  finalStatus,
+      computed_grade: gradeMatch ? gradeMatch[1].trim() : "--",
+      computed_step:  stepMatch  ? stepMatch[1].trim()  : "--",
+    }]);
     alert("Entry saved to session.");
   };
 
