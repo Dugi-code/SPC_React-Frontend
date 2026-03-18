@@ -1,13 +1,32 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import SalaryProgressionSidebar from "./SalaryProgressionSidebar";
 import MainLayout from "./MainLayout";
 
 export default function App() {
-  const apiBaseUrl = process.env.REACT_APP_API_URL || "http://localhost:8000";
+  // Empty string = relative URL → Vercel proxy forwards to Render backend.
+  // This means all API calls go to the same domain as the frontend
+  // (e.g. https://your-app.vercel.app/api/v1/compute), so browser
+  // extensions and CORS can never block them.
+  // For local development, set REACT_APP_API_URL=http://localhost:8000
+  // in a .env.local file.
+  const apiBaseUrl = process.env.REACT_APP_API_URL ?? "";
   const authToken = process.env.REACT_APP_API_KEY || "CHANGEME";
 
   const [showSidebar, setShowSidebar] = useState(false);
   const [progressionResult, setProgressionResult] = useState(null);
+
+  // ── Wake-up ping ────────────────────────────────────────────────────────────
+  // Render free tier spins down after 15 min of inactivity and takes
+  // 30-60 seconds to restart. Pinging /healthz on app mount ensures the
+  // backend is warm before the user fills the form and clicks Calculate.
+  useEffect(() => {
+    fetch(`${apiBaseUrl}/healthz`, {
+      method: "GET",
+      headers: { "X-API-Key": authToken },
+    }).catch(() => {
+      // Intentionally silent — this is best-effort wake-up only.
+    });
+  }, [apiBaseUrl, authToken]);
 
   const initialEmployees = useMemo(
     () => [
