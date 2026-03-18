@@ -369,7 +369,14 @@ function ProgressionResults({ results, disabled, sessionData }) {
 
 // ─── ExportManagement ─────────────────────────────────────────────────────────
 
-function ExportManagement({ sessionActive, sessionData, onNewSession, onContinueSession, onExportSession }) {
+function ExportManagement({ sessionActive, sessionData, onNewSession, onContinueSession, onExportSession, backendStatus }) {
+  // Derive backend status label — only shown when relevant (waking or unknown after first ping)
+  const statusLabel = backendStatus === "waking"
+    ? { text: "⏳ Connecting to server…", bg: "#fff3cd", color: "#856404", border: "1px solid #ffc107" }
+    : backendStatus === "awake"
+    ? { text: "🟢 Server ready",         bg: "#d4edda", color: "#155724", border: "1px solid #c3e6cb" }
+    : null; // "unknown" — no label shown before first ping
+
   return (
     <div style={s.section}>
       <div style={s.sectionTitle}>Export Management</div>
@@ -381,6 +388,12 @@ function ExportManagement({ sessionActive, sessionData, onNewSession, onContinue
       <div style={{ padding:"8px", margin:"8px 0", borderRadius:"4px", fontWeight:"bold", background:sessionActive?"#4CAF50":"#999", color:"white" }}>
         {sessionActive?`Active session - ${sessionData.length} entries`:sessionData.length>0?`Inactive session - ${sessionData.length} entries`:"No active session"}
       </div>
+      {/* Backend status indicator — visible only when waking or awake */}
+      {statusLabel && (
+        <div style={{ marginTop:"6px", padding:"5px 10px", borderRadius:"3px", fontSize:"12px", fontWeight:"normal", background:statusLabel.bg, color:statusLabel.color, border:statusLabel.border }}>
+          {statusLabel.text}
+        </div>
+      )}
     </div>
   );
 }
@@ -398,7 +411,11 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
   const [sessionData,   setSessionData]   = useState([]);
   const [globalError,   setGlobalError]   = useState(null);
   const [calcError,     setCalcError]     = useState(null);
-  const [loading,       setLoading]       = useState(false);
+  const [loading,        setLoading]        = useState(false);
+  // "unknown"  — server state not yet checked (initial load)
+  // "waking"   — ping sent, awaiting response (Render cold start, ~30-60s)
+  // "awake"    — /healthz responded successfully, backend is ready
+  const [backendStatus,  setBackendStatus]  = useState("unknown");
 
   const headers = { "X-API-Key": authToken, "Content-Type": "application/json" };
 
@@ -407,10 +424,39 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
     if (sessionActive && sessionData.length > 0) {
       if (!window.confirm("Previous session has " + sessionData.length + " unsaved entries. Start a new session anyway?")) return;
     }
+
+    // ── Session starts immediately — never blocked by wake-up ────────────────
     setSessionActive(true);
     setSessionData([]);
     setGlobalError(null);
     setCalcError(null);
+
+    // ── Backend wake-up ping ──────────────────────────────────────────────────
+    // Only pings if status is unknown or previously failed (not if already awake).
+    // Render free tier spins down after ~15 min of inactivity. This ensures the
+    // backend is warm by the time the user fills the form and clicks Calculate.
+    // The ping is fire-and-forget — it never blocks or delays session start.
+    if (backendStatus !== "awake") {
+      setBackendStatus("waking");
+      fetch(`${apiBaseUrl}/healthz`, {
+        method:  "GET",
+        headers: { "X-API-Key": authToken },
+      })
+        .then(res => {
+          if (res.ok) {
+            setBackendStatus("awake");
+          } else {
+            // Backend responded but with an error — treat as awake so we
+            // don't block the user; the real error will surface on Calculate.
+            setBackendStatus("awake");
+          }
+        })
+        .catch(() => {
+          // Network error or timeout — reset to unknown so next New Session
+          // will try again. Do NOT surface this error to the user here.
+          setBackendStatus("unknown");
+        });
+    }
   };
 
   const validateSession = () => {
@@ -757,6 +803,7 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
           onNewSession={handleNewSession}
           onContinueSession={handleContinueSession}
           onExportSession={handleExportSession}
+          backendStatus={backendStatus}
         />
 
       </div>
