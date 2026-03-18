@@ -437,13 +437,17 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
   const headers = { "X-API-Key": authToken, "Content-Type": "application/json" };
 
   const handleNewSession = useCallback(() => {
+    // Guard: warn if previous session has unsaved data
+    if (sessionActive && sessionData.length > 0) {
+      if (!window.confirm("Previous session has " + sessionData.length + " unsaved entries. Start a new session anyway?")) return;
+    }
     setSessionActive(true);
     setSessionData([]);
     setGlobalError(null);
     setCalcError(null);
     setDiagLog([]);
     log("New session started — inputs and Calculate button unlocked", "success");
-  }, [log]);
+  }, [log, sessionActive, sessionData]);
 
   const validateSession = useCallback(() => {
     if (!sessionActive) {
@@ -601,29 +605,80 @@ export default function MainLayout({ apiBaseUrl, authToken }) {
   }, [sessionActive, apiBaseUrl, authToken, employeeInfo, personalInfo, promotions, headers, log]);
 
   // ── Clear ─────────────────────────────────────────────────────────────────
+  // ── clearAll: wipes everything including unit/subtype. Requires confirmation.
   const clearAll = () => {
+    if (!window.confirm("Are you sure you want to clear all data?")) return;
     setPersonalInfo({ name:"", oracle_number:"", sex:"", dob:"" });
     setEmployeeInfo({ unit:"", subtype:"", appointment_date:"", grade:"", step:"" });
     setPromotions([]); setResults([]); setFinalStatus("Grade: -- Step: --");
     setGlobalError(null); setCalcError(null);
-    log("Form cleared");
+    log("All data cleared");
   };
 
-  // ── Save for export ───────────────────────────────────────────────────────
+  // ── clearForNextEntry: clears all EXCEPT unit and subtype so the next
+  //    employee in the same unit can be entered without re-selecting those.
+  //    Called automatically after Save for Export. No confirmation.
+  const clearForNextEntry = () => {
+    setPersonalInfo({ name:"", oracle_number:"", sex:"", dob:"" });
+    setEmployeeInfo(prev => ({
+      unit:             prev.unit,     // preserved
+      subtype:          prev.subtype,  // preserved
+      appointment_date: "",
+      grade:            "",
+      step:             "",
+    }));
+    setPromotions([]);
+    setResults([]);
+    setFinalStatus("Grade: -- Step: --");
+    setCalcError(null);
+    log("Form cleared for next entry (unit and subtype preserved)");
+  };
+
+  // ── saveForExport: validates required fields, saves entry, then calls
+  //    clearForNextEntry() to reset form while preserving unit and subtype.
+  //    Matches original index.html saveForExport behaviour exactly.
   const saveForExport = () => {
     if (!validateSession()) return;
-    // Parse computed_grade / computed_step out of finalStatus for View Entries display
+
+    // Validate required personal information fields
+    if (!personalInfo.name || !personalInfo.sex || !personalInfo.dob) {
+      alert("Please fill in all required personal information (Name, Sex, Date of Birth)");
+      return;
+    }
+
+    // Extract computed grade/step from finalStatus for View Entries display
     const gradeMatch = finalStatus.match(/Grade:\s*(.+?)\s+Step/);
     const stepMatch  = finalStatus.match(/Step:\s*(.+)/);
-    setSessionData(prev => [...prev, {
-      ...personalInfo,
-      ...employeeInfo,
-      promotions,
-      final_status:  finalStatus,
-      computed_grade: gradeMatch ? gradeMatch[1].trim() : "--",
-      computed_step:  stepMatch  ? stepMatch[1].trim()  : "--",
-    }]);
-    alert("Entry saved to session.");
+
+    // Get last salary from results history for export
+    const lastSalary = results.length > 0
+      ? (results[results.length - 1]?.salary || 0)
+      : 0;
+
+    const exportEntry = {
+      name:             personalInfo.name,
+      oracle_number:    personalInfo.oracle_number,
+      sex:              personalInfo.sex,
+      dob:              personalInfo.dob,
+      unit:             employeeInfo.unit,
+      subtype:          employeeInfo.subtype,
+      appointment_date: employeeInfo.appointment_date,
+      grade:            employeeInfo.grade,
+      step:             employeeInfo.step,
+      promotions:       [...promotions],  // copy, not reference
+      final_status:     finalStatus,
+      computed_grade:   gradeMatch ? gradeMatch[1].trim() : "",
+      computed_step:    stepMatch  ? stepMatch[1].trim()  : "",
+      basic_salary:     lastSalary,
+    };
+
+    setSessionData(prev => [...prev, exportEntry]);
+    log("Entry saved to session: " + exportEntry.name + " — " + finalStatus, "success");
+
+    alert("Data saved successfully");
+
+    // Clear form for next entry, preserving unit and subtype
+    clearForNextEntry();
   };
 
   const handleContinueSession = () => { if (sessionData.length > 0) setSessionActive(false); };
